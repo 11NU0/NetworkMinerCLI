@@ -10,8 +10,6 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web.UI;
-using System.Web.UI.WebControls.WebParts;
 using static PacketParser.Packets.IEC_60870_5_104Packet;
 
 namespace PacketHandlerFramework.PacketHandlers {

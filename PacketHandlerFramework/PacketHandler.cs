@@ -14,7 +14,6 @@ using PacketParser.Packets;
 using PacketHandlerFramework.FileTransfer;
 using PacketHandlerFramework.Fingerprints;
 using System.Linq;
-using System.Web.UI.WebControls;
 using System.Collections.Specialized;
 
 namespace PacketHandlerFramework {
@@ -181,6 +180,8 @@ namespace PacketHandlerFramework {
 
             this.packetQueueConsumerThread = new System.Threading.Thread(new System.Threading.ThreadStart(delegate () { this.CreateFramesFromPacketsInPacketQueue(); }));
             this.frameQueueConsumerThread = new System.Threading.Thread(new System.Threading.ThreadStart(delegate () { this.ParseFramesInFrameQueue(); }));
+            this.packetQueueConsumerThread.IsBackground = true;
+            this.frameQueueConsumerThread.IsBackground = true;
 
             string applicationDirectory = Path.GetDirectoryName(applicationExecutablePath) + Path.DirectorySeparatorChar;
             this.FingerprintsPath = applicationDirectory + "Fingerprints" + Path.DirectorySeparatorChar;
@@ -305,8 +306,10 @@ namespace PacketHandlerFramework {
         }
 
         public void AbortBackgroundThreads() {
+#if NETFRAMEWORK
             this.packetQueueConsumerThread.Abort();
             this.frameQueueConsumerThread.Abort();
+#endif
         }
 
         internal virtual void OnInsufficientWritePermissionsDetected(string path) {

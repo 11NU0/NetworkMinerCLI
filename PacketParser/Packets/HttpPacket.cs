@@ -433,7 +433,7 @@ namespace PacketParser.Packets {
         public static IEnumerable<(string name, string value)> GetUrlEncodedParts(string urlEncodedData, bool isFormPostData) {
             char[] separator1 = { '&' };
             char[] separator2 = { '=' };
-            string data = System.Web.HttpUtility.UrlDecode(urlEncodedData);
+            string data = SharedUtils.UrlEncoder.UrlDecode(urlEncodedData);
             ICollection<string> formNameValues = data.Split(separator1);
             if (isFormPostData) {
                 List<string> mergedNameValues = new List<string>();
@@ -457,8 +457,8 @@ namespace PacketParser.Packets {
                 if (formNameValue.Length > 0) {
                     int eqIndex = formNameValue.IndexOf('=');
                     if (eqIndex > 0 && eqIndex < formNameValue.Length - 1) {
-                        string controlName = System.Web.HttpUtility.UrlDecode(formNameValue.Substring(0, eqIndex));
-                        string formValue = System.Web.HttpUtility.UrlDecode(formNameValue.Substring(eqIndex + 1));
+                        string controlName = SharedUtils.UrlEncoder.UrlDecode(formNameValue.Substring(0, eqIndex));
+                        string formValue = SharedUtils.UrlEncoder.UrlDecode(formNameValue.Substring(eqIndex + 1));
 
                         yield return (controlName, formValue);
                     }

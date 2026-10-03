@@ -1,8 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!--<TargetFramework>netstandard2.0</TargetFramework>-->
-    <TargetFramework>net48</TargetFramework>
+    <TargetFrameworks>net48;net8.0</TargetFrameworks>
     <Company>Netresec</Company>
     <Authors>Erik Hjelmvik</Authors>
     <AssemblyVersion>3.0.0</AssemblyVersion>
@@ -63,9 +62,8 @@
     <ProjectReference Include="..\SharedUtils\SharedUtils.csproj" />
   </ItemGroup>
 
-<!--System.Web is required when targeting net472/net48, but not for netstandard2.0-->
-<ItemGroup>
-  <Reference Include="System.Web" />
-</ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="System.Web" />
+  </ItemGroup>
 
 </Project>

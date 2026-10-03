@@ -15,7 +15,6 @@ using System.Text;
 using PacketParser;
 using PacketParser.Packets;
 using PacketParser.Utils;
-using System.Web.UI.WebControls.WebParts;
 
 namespace PacketHandlerFramework.FileTransfer {
 
@@ -425,7 +424,7 @@ namespace PacketHandlerFramework.FileTransfer {
         }
 
         public static string UrlEncode(string s) {
-            return System.Web.HttpUtility.UrlEncode(s);
+            return SharedUtils.UrlEncoder.UrlEncode(s);
         }
 
         /// <summary>
@@ -452,7 +451,7 @@ namespace PacketHandlerFramework.FileTransfer {
                 filename = filename.Substring(filename.LastIndexOf('\\') + 1);
             }
 
-            filename = System.Web.HttpUtility.UrlDecode(filename);
+            filename = SharedUtils.UrlEncoder.UrlDecode(filename);
             while (filename.IndexOfAny(SPECIAL_CHARACTERS) > -1)
                 filename = filename.Remove(filename.IndexOfAny(SPECIAL_CHARACTERS), 1);
             while (filename.IndexOfAny(DIRECTORY_SEPARATORS) > -1)
@@ -478,7 +477,7 @@ namespace PacketHandlerFramework.FileTransfer {
             //FILE LOCATION
             if (fileLocation == null)
                 fileLocation = string.Empty;
-            fileLocation = System.Web.HttpUtility.UrlDecode(fileLocation);
+            fileLocation = SharedUtils.UrlEncoder.UrlDecode(fileLocation);
             fileLocation = fileLocation.Replace("..", "_");
 
             fileLocation = fileLocation.Replace('\\', '/');//I prefer using frontslash

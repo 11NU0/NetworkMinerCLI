@@ -2,12 +2,10 @@
 using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static PacketParser.Packets.IrcPacket;
-using System.Web.UI.WebControls;
 
 namespace PacketParser.Packets
 {

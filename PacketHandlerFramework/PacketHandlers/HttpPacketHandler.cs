@@ -993,7 +993,7 @@ namespace PacketHandlerFramework.PacketHandlers {
                     if (Uri.TryCreate(httpHeaders["Location"], UriKind.Absolute, out Uri redirectTarget)) {
                         string query = redirectTarget.Query?.TrimStart('?');
                         if (!string.IsNullOrEmpty(query)) {
-                            System.Collections.Specialized.NameValueCollection q = System.Web.HttpUtility.ParseQueryString(query);
+                            System.Collections.Specialized.NameValueCollection q = SharedUtils.UrlEncoder.ParseQueryString(query);
                             if (q.HasKeys())
                                 this.ExtractHostDetailsFromQueryString(destinationHost, q, out _);
                         }
