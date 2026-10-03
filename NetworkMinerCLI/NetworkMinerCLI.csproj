@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <RootNamespace>NetworkMinerCLI</RootNamespace>
+    <AssemblyName>NetworkMinerCLI</AssemblyName>
+    <AssemblyVersion>3.1.0</AssemblyVersion>
+    <FileVersion>3.1.0</FileVersion>
+    <Version>3.1.0</Version>
+    <Company>Netresec</Company>
+    <Authors>NetworkMiner CLI - headless build</Authors>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PacketHandlerFramework\PacketHandlerFramework.csproj" />
+    <ProjectReference Include="..\PacketParser\PacketParser.csproj" />
+    <ProjectReference Include="..\SharedUtils\SharedUtils.csproj" />
+  </ItemGroup>
+
+</Project>

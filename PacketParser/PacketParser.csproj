@@ -1,0 +1,71 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--<TargetFramework>netstandard2.0</TargetFramework>-->
+    <TargetFramework>net48</TargetFramework>
+    <Company>Netresec</Company>
+    <Authors>Erik Hjelmvik</Authors>
+    <AssemblyVersion>3.0.0</AssemblyVersion>
+    <FileVersion>3.0.0</FileVersion>
+    <Version>3.0.0</Version>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'" />
+
+  <ItemGroup>
+    <Compile Remove="Events\**" />
+    <Compile Remove="Fingerprints\**" />
+    <Compile Remove="PacketHandlers\**" />
+    <EmbeddedResource Remove="Events\**" />
+    <EmbeddedResource Remove="Fingerprints\**" />
+    <EmbeddedResource Remove="PacketHandlers\**" />
+    <None Remove="Events\**" />
+    <None Remove="Fingerprints\**" />
+    <None Remove="PacketHandlers\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="AudioStream.cs" />
+    <Compile Remove="FileTransfer\AuFileAssembler.cs" />
+    <Compile Remove="FileTransfer\FileSegmentAssembler.cs" />
+    <Compile Remove="FileTransfer\FileStreamAssembler.cs" />
+    <Compile Remove="FileTransfer\FileStreamAssemblerList.cs" />
+    <Compile Remove="FileTransfer\FileStreamTypes.cs" />
+    <Compile Remove="FileTransfer\IFileCarver.cs" />
+    <Compile Remove="FileTransfer\PartialFileAssembler.cs" />
+    <Compile Remove="FileTransfer\ReconstructedFile.cs" />
+    <Compile Remove="FileTransfer\RfbRectangleAssembler.cs" />
+    <Compile Remove="FileTransfer\WavFileAssembler.cs" />
+    <Compile Remove="FiveTuple.cs" />
+    <Compile Remove="IMemoryMonitor.cs" />
+    <Compile Remove="ISessionProtocolFinderFactory.cs" />
+    <Compile Remove="Mime\Email.cs" />
+    <Compile Remove="NetworkCredential.cs" />
+    <Compile Remove="NetworkFlow.cs" />
+    <Compile Remove="NetworkHost.cs" />
+    <Compile Remove="NetworkHostList.cs" />
+    <Compile Remove="NetworkPacket.cs" />
+    <Compile Remove="NetworkPacketList.cs" />
+    <Compile Remove="NetworkServiceMetadata.cs" />
+    <Compile Remove="NetworkTcpSession.cs" />
+    <Compile Remove="PacketHandler.cs" />
+    <Compile Remove="Packets\IEEE_802_11ProbeRequestBodyPacket.cs" />
+    <Compile Remove="PortProtocolFinderFactory.cs" />
+    <Compile Remove="SimpleParser.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SharedUtils\SharedUtils.csproj" />
+  </ItemGroup>
+
+<!--System.Web is required when targeting net472/net48, but not for netstandard2.0-->
+<ItemGroup>
+  <Reference Include="System.Web" />
+</ItemGroup>
+
+</Project>

@@ -1,0 +1,30 @@
+## Build output
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+
+## NuGet
+packages/
+.packages/
+*.nupkg
+*.snupkg
+.nuget/
+
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.userprefs
+*.cache
+*.docstates
+
+## OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+## Extracted files / output
+NetworkMinerCLI-Output/
+AssembledFiles/

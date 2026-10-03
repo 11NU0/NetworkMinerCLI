@@ -1,0 +1,83 @@
+using PacketHandlerFramework;
+using PacketParser;
+using PacketParser.Packets;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace PacketHandlerFramework.PacketHandlers {
+    class TabularDataStreamPacketHandler : AbstractPacketHandler, ITcpSessionPacketHandler {
+
+        public override Type[] ParsedTypes { get; } = { typeof(TabularDataStreamPacket) };
+
+        public ApplicationLayerProtocol HandledProtocol {
+            get { return ApplicationLayerProtocol.TabularDataStream; }
+        }
+
+        public TabularDataStreamPacketHandler(PacketHandler mainPacketHandler)
+            : base(mainPacketHandler) {
+            //empty?
+        }
+
+        #region ITcpSessionPacketHandler Members
+
+
+        //public int ExtractData(NetworkTcpSession tcpSession, NetworkHost sourceHost, NetworkHost destinationHost, IEnumerable<Packets.AbstractPacket> packetList) {
+        public int ExtractData(NetworkTcpSession tcpSession, bool transferIsClientToServer, IEnumerable<PacketParser.Packets.AbstractPacket> packetList) {
+
+            int returnValue = 0;
+            foreach (AbstractPacket p in packetList) {
+                if (p.GetType() == typeof(TabularDataStreamPacket))
+                    returnValue = ExtractData(tcpSession, transferIsClientToServer, (TabularDataStreamPacket)p);
+            }
+
+            return returnValue;
+        }
+
+        private int ExtractData(NetworkTcpSession tcpSession, bool transferIsClientToServer, TabularDataStreamPacket tdsPacket) {
+            if (!tdsPacket.PacketHeaderIsComplete)
+                return 0;
+
+            if (tdsPacket.PacketType == (byte)TabularDataStreamPacket.PacketTypes.SqlQuery) {
+                System.Collections.Specialized.NameValueCollection sqlParams = new System.Collections.Specialized.NameValueCollection();
+                char[] splitters = { ';' };
+                foreach (string s in tdsPacket.Query.Split(splitters)) {
+                    sqlParams.Add("SQL Query " + sqlParams.Count + 1, s);
+                }
+                if (sqlParams.Count > 0) MainPacketHandler.OnParametersDetected(new Events.ParametersEventArgs(tdsPacket.ParentFrame.FrameNumber, tcpSession.Flow.FiveTuple, transferIsClientToServer, sqlParams, tdsPacket.ParentFrame.Timestamp, ""));
+            }
+            if (tdsPacket.PacketType == (byte)TabularDataStreamPacket.PacketTypes.Tds7Login) {
+                NetworkCredential nc = null;
+
+                if (tdsPacket.ClientHostname != null && tdsPacket.ClientHostname.Length > 0)
+                    tcpSession.ClientHost.AddHostName(tdsPacket.ClientHostname, tdsPacket.PacketTypeDescription);
+                if (tdsPacket.Username != null && tdsPacket.Username.Length > 0)
+                    nc = new NetworkCredential(tcpSession.ClientHost, tcpSession.ServerHost, "TDS (SQL)", tdsPacket.Username, tdsPacket.ParentFrame.Timestamp);
+                if (tdsPacket.Password != null && tdsPacket.Password.Length > 0 && nc != null)
+                    nc.Password = tdsPacket.Password;
+                //skip appName
+
+                if (tdsPacket.AppName != null && tdsPacket.AppName.Length > 0)
+                    tcpSession.ServerHost.AddNumberedExtraDetail("SQL AppName", tdsPacket.AppName);
+                if (tdsPacket.ServerHostname != null && tdsPacket.ServerHostname.Length > 0)
+                    tcpSession.ServerHost.AddHostName(tdsPacket.ServerHostname, tdsPacket.PacketTypeDescription);
+                if (tdsPacket.LibraryName != null && tdsPacket.LibraryName.Length > 0)
+                    tcpSession.ServerHost.AddNumberedExtraDetail("SQL Library", tdsPacket.LibraryName);
+                if (tdsPacket.DatabaseName != null && tdsPacket.DatabaseName.Length > 0)
+                    tcpSession.ServerHost.AddNumberedExtraDetail("SQL Database Name", tdsPacket.DatabaseName);
+
+                if (nc != null)
+                    MainPacketHandler.AddCredential(nc);
+            }
+
+            return tdsPacket.PacketLength;
+        }
+
+        public void Reset() {
+            //throw new Exception("The method or operation is not implemented.");
+            //do nothing... no state
+        }
+
+        #endregion
+    }
+}
