@@ -9,8 +9,10 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
+#if NETFRAMEWORK
 using System.Drawing;
 using System.Drawing.Imaging;
+#endif
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -282,6 +284,7 @@ namespace PacketHandlerFramework.PacketHandlers {
         }
 
         private void Assembler_FileReconstructed(string extendedFileId, ReconstructedFile file) {
+#if NETFRAMEWORK
             if(file.IsImage()) {
                 var fiveTuple = file.FiveTuple;
                 //var startFrame = file.InitialFrameNumber;
@@ -296,7 +299,7 @@ namespace PacketHandlerFramework.PacketHandlers {
                         string filename = "njRAT_Desktop_" + file.Timestamp.ToUniversalTime().ToString("yyMMddHHmmss") + ".jpg";
                         FileStreamAssembler assembler = new FileStreamAssembler(this.MainPacketHandler.FileStreamAssemblerList, file.FiveTuple, file.TransferIsClientToServer, FileStreamTypes.njRAT, filename, "", file.Details, file.InitialFrameNumber, file.Timestamp);
                         if (assembler.TryActivate()) {
-                            byte[] jpg = desktop.GetScreenshot(ImageFormat.Jpeg, file.Timestamp);
+                            byte[] jpg = desktop.GetScreenshot(file.Timestamp);
                             assembler.FileSegmentRemainingBytes = jpg.Length;
                             assembler.SetRemainingBytesInFile(jpg.Length);
                             assembler.AddData(jpg, 0);
@@ -304,7 +307,9 @@ namespace PacketHandlerFramework.PacketHandlers {
                     }
                 }
             }
-            else if(file.ExtensionFromHeader == "gz") {
+            else
+#endif
+            if(file.ExtensionFromHeader == "gz") {
                 byte[] md5Hash = null;
                 using (System.IO.FileStream fs = new FileStream(file.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                     using(GZipStream gz = new GZipStream(fs, CompressionMode.Decompress, false)) {
@@ -686,7 +691,9 @@ namespace PacketHandlerFramework.PacketHandlers {
             //similar to RfbPacketHandler.VncDesktop
             //private System.Drawing.Imaging.PixelFormat pixelFormat;
             private (int spriteHeight, List<(int x, int y)> spritePositions) nextTransform;
+#if NETFRAMEWORK
             private Bitmap _desktopBitmap = null;//lazy initialization
+#endif
 
 
             internal (int Width, int Height) Resolution { get; }
@@ -730,12 +737,13 @@ namespace PacketHandlerFramework.PacketHandlers {
 
             
 
-            internal byte[] GetScreenshot(ImageFormat imageFormat, DateTime timestamp) {
+            internal byte[] GetScreenshot(DateTime timestamp) {
+#if NETFRAMEWORK
                 //this.pixelsAddedOnLastScreenshot = this.PixelsAddedTotal;
                 //this.LastScreenshotTimestamp = timestamp;
                 if (this.TryGetDesktopBitmap(out Bitmap bitmap)) {
                     using (MemoryStream ms = new MemoryStream()) {
-                        bitmap.Save(ms, imageFormat);
+                        bitmap.Save(ms, ImageFormat.Jpeg);
                         byte[] imageBytes = new byte[ms.Length];
                         ms.Position = 0;
                         ms.Read(imageBytes, 0, imageBytes.Length);
@@ -744,9 +752,13 @@ namespace PacketHandlerFramework.PacketHandlers {
                 }
                 else
                     return null;
+#else
+                return null;
+#endif
             }
 
 
+#if NETFRAMEWORK
             private bool TryGetDesktopBitmap(out Bitmap bitmap) {
                 if (this.Resolution.Width < 1 || this.Resolution.Height < 1) {
                     bitmap = null;
@@ -757,8 +769,10 @@ namespace PacketHandlerFramework.PacketHandlers {
                 bitmap = this._desktopBitmap;
                 return true;
             }
+#endif
 
 
+#if NETFRAMEWORK
             internal void UpdateDesktop(Bitmap sourceBitmap) {
                 if (this.nextTransform.spriteHeight > 0 && this.nextTransform.spritePositions.Count > 0) {
                     var spritePositions = this.nextTransform.spritePositions;
@@ -781,20 +795,25 @@ namespace PacketHandlerFramework.PacketHandlers {
                     }
                 }
             }
+#endif
 
+#if NETFRAMEWORK
             private void SetDesktopPixel(int x, int y, Color color) {
 
                 if (this.TryGetDesktopBitmap(out Bitmap bitmap))
                     bitmap.SetPixel(x, y, color);
             }
+#endif
 
             public void Dispose() {
+#if NETFRAMEWORK
                 try {
                     this._desktopBitmap?.Dispose();
                 }
                 catch {
                     Logger.Log("Unable to dispose njRAT desktop", Logger.EventLogEntryType.Error);
                 }
+#endif
             }
         }
     }

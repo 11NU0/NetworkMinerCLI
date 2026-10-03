@@ -10,10 +10,34 @@ Requires the .NET SDK (10.0+) or Visual Studio 2022 with the .NET Framework 4.8 
 dotnet build NetworkMinerCLI.sln -c Release
 ```
 
-The executable and all dependencies (including the `Fingerprints/` data files) are placed in:
+The solution multi-targets `net48` and `net8.0`, producing two builds:
 
 ```
-NetworkMinerCLI/bin/Release/net48/
+NetworkMinerCLI/bin/Release/net48/NetworkMinerCLI.exe   # Windows .NET Framework 4.8
+NetworkMinerCLI/bin/Release/net8.0/NetworkMinerCLI.dll  # Cross-platform .NET 8 (Windows, Linux, macOS)
+```
+
+## Platform Support
+
+| Target | Platform | VNC/RAT screenshot extraction |
+|--------|----------|-------------------------------|
+| `net48` | Windows only (.NET Framework 4.8) | Yes (System.Drawing) |
+| `net8.0` | Windows, Linux, macOS (.NET 8 runtime) | No (disabled via `#if NETFRAMEWORK`) |
+
+The `net8.0` target runs on any platform with the .NET 8 runtime installed. All core analysis
+features (hosts, sessions, credentials, file carving, DNS, messages) work identically on both
+targets. Only VNC/RAT desktop screenshot reconstruction is disabled on `net8.0` because it
+depends on `System.Drawing` (GDI+), which is Windows-only.
+
+### Running on Linux
+
+```bash
+# Install .NET 8 runtime (if not already installed)
+dotnet NetworkMinerCLI/bin/Release/net8.0/NetworkMinerCLI.dll capture.pcap
+
+# Or publish a self-contained Linux binary
+dotnet publish NetworkMinerCLI/NetworkMinerCLI.csproj -c Release -f net8.0 -r linux-x64 --self-contained
+./bin/Release/net8.0/linux-x64/publish/NetworkMinerCLI capture.pcap
 ```
 
 ## Usage
@@ -58,7 +82,7 @@ NetworkMinerCLI capture.pcap -q
 
 ### Output
 
-The CLI prints six sections to stdout:
+The CLI prints nine sections to stdout:
 
 1. **Hosts** — IP, MAC, hostname, OS guess, TTL distance
 2. **Sessions** — application-layer protocol sessions (client/server/ports)
@@ -66,6 +90,9 @@ The CLI prints six sections to stdout:
 4. **Files** — reconstructed files transferred over the network
 5. **DNS Records** — DNS queries and responses
 6. **Messages** — emails, chat messages, etc.
+7. **Parameters** — protocol-specific fields (HTTP headers, FTP commands, VNC clipboard, etc.)
+8. **HTTP Clients** — HTTP client session identifiers
+9. **Keywords** — detected/flagged keyword matches
 
 Extracted files are written to `<output>/AssembledFiles/`.
 

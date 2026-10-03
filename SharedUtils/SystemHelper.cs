@@ -67,7 +67,9 @@ namespace SharedUtils {
                     if(path.IndexOfAny(specialChars) >= 0)
                         path = "\"" + path + "\"";
 
-                    return System.Diagnostics.Process.Start("explorer.exe", path);
+                    return System.Diagnostics.Process.Start(
+                        System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) ? "explorer.exe" : "xdg-open",
+                        path);
                 }
                 else
                     return System.Diagnostics.Process.Start(path);

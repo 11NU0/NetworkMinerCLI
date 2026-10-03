@@ -8,8 +8,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+#if NETFRAMEWORK
 using System.Drawing;
 using System.Drawing.Imaging;
+#endif
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -65,7 +67,7 @@ namespace PacketHandlerFramework.PacketHandlers {
             }
         }
 
-        private protected void SetScreenSize(System.Drawing.Size desktopSize, System.Collections.Specialized.NameValueCollection parms, NetworkTcpSession tcpSession, NetworkHost vncServerHost) {
+        private protected void SetScreenSize(RfbSize desktopSize, System.Collections.Specialized.NameValueCollection parms, NetworkTcpSession tcpSession, NetworkHost vncServerHost) {
 
             if (this.vncDesktops.ContainsKey(tcpSession))
                 this.vncDesktops[tcpSession].DesktopSize = desktopSize;
@@ -199,6 +201,7 @@ namespace PacketHandlerFramework.PacketHandlers {
         }
 
         private void SaveDesktopScreenshot(NetworkTcpSession session, long initialFrameNumber, DateTime timestamp, VncDesktop desktop) {
+#if NETFRAMEWORK
             bool transferIsClientToServer = desktop.ServerIP.Equals(session.ClientHost.IPAddress);
 
             string filename = desktop.DesktopName.Trim() + "_" + session.GetHashCode().ToString("X4") + "_" + timestamp.ToUniversalTime().ToString("yyMMddHHmmss") + ".jpg";
@@ -207,11 +210,12 @@ namespace PacketHandlerFramework.PacketHandlers {
                 details = desktop.DesktopName.Trim() + " " + details;
             FileStreamAssembler assembler = new FileStreamAssembler(this.MainPacketHandler.FileStreamAssemblerList, session.Flow.FiveTuple, transferIsClientToServer, FileStreamTypes.VNC, filename, "", details, initialFrameNumber, timestamp);
             if (assembler.TryActivate()) {
-                byte[] jpg = desktop.GetScreenshot(ImageFormat.Jpeg, timestamp);
+                byte[] jpg = desktop.GetScreenshot(timestamp);
                 assembler.FileSegmentRemainingBytes = jpg.Length;
                 assembler.SetRemainingBytesInFile(jpg.Length);
                 assembler.AddData(jpg, 0);
             }
+#endif
         }
 
         private protected void ExtractServerCutText(RfbPacket.ServerCutTextPacket serverCutText, bool transferIsClientToServer, System.Collections.Specialized.NameValueCollection parms) {
@@ -321,7 +325,9 @@ namespace PacketHandlerFramework.PacketHandlers {
 
             private SharedUtils.ZlibStream zlibStream = null;//lazy initialization
             private SharedUtils.ZlibStream[] tightZlibStreams;
+#if NETFRAMEWORK
             private Bitmap _desktopBitmap = null;//lazy initialization
+#endif
             private long pixelsAddedOnLastScreenshot = 0;
 
 
@@ -329,7 +335,7 @@ namespace PacketHandlerFramework.PacketHandlers {
             internal System.Net.IPAddress ServerIP { get; }
             internal string DesktopName { get; set; }
             internal RfbPacket.VncPixelFormat PixelFormat { get; set; }
-            internal Size DesktopSize { get; set; }
+            internal RfbSize DesktopSize { get; set; }
 
             internal long PixelsAddedTotal { get; private set; }
 
@@ -346,12 +352,13 @@ namespace PacketHandlerFramework.PacketHandlers {
                 this.tightZlibStreams = new SharedUtils.ZlibStream[4];//stream 0,1,2,3: https://github.com/rfbproto/rfbproto/blob/master/rfbproto.rst#767tight-encoding
             }
 
-            internal byte[] GetScreenshot(ImageFormat imageFormat, DateTime timestamp) {
+            internal byte[] GetScreenshot(DateTime timestamp) {
+#if NETFRAMEWORK
                 this.pixelsAddedOnLastScreenshot = this.PixelsAddedTotal;
                 this.LastScreenshotTimestamp = timestamp;
                 if (this.TryGetDesktopBitmap(out Bitmap bitmap)) {
                     using (MemoryStream ms = new MemoryStream()) {
-                        bitmap.Save(ms, imageFormat);
+                        bitmap.Save(ms, ImageFormat.Jpeg);
                         byte[] imageBytes = new byte[ms.Length];
                         ms.Position = 0;
                         ms.Read(imageBytes, 0, imageBytes.Length);
@@ -360,9 +367,12 @@ namespace PacketHandlerFramework.PacketHandlers {
                 }
                 else
                     return null;
-
+#else
+                return null;
+#endif
             }
 
+#if NETFRAMEWORK
             private bool TryGetDesktopBitmap(out Bitmap bitmap) {
                 if (this.DesktopSize.Width < 1 || this.DesktopSize.Height < 1) {
                     bitmap = null;
@@ -373,7 +383,9 @@ namespace PacketHandlerFramework.PacketHandlers {
                 bitmap = this._desktopBitmap;
                 return true;
             }
+#endif
 
+#if NETFRAMEWORK
             private static PixelFormat DecodeVncPixelFormat(RfbPacket.VncPixelFormat pixelFormat) {
                 if (pixelFormat.TrueColour) {
                     //Currently bits-per-pixel must be 8, 16 or 32
@@ -387,8 +399,9 @@ namespace PacketHandlerFramework.PacketHandlers {
                 else
                     return System.Drawing.Imaging.PixelFormat.Indexed;
             }
+#endif
 
-            private void AddCompressedImageData(SharedUtils.ZlibStream zlibStream, RfbPacket.Rectangle r, Color[] paletteColors = null) {
+            private void AddCompressedImageData(SharedUtils.ZlibStream zlibStream, RfbPacket.Rectangle r, RfbColor[] paletteColors = null) {
                 zlibStream.Write(r.RectangleData.ImageBytes, 0, r.RectangleData.ImageBytes.Length);
                 int bytesToRead = r.Width * r.Height * this.PixelFormat.BytesPerPixel;
                 if (paletteColors?.Length == 2) {
@@ -432,10 +445,10 @@ namespace PacketHandlerFramework.PacketHandlers {
 
                             if (paletteColors?.Length > 2) {
                                 //8 bits are used to encode one pixel
-                                Color c = paletteColors[rawImageData[x + r.Height * y]];
+                                RfbColor c = paletteColors[rawImageData[x + r.Height * y]];
                                 this.SetDesktopPixel(x, y, c);
                             }
-                            else if (this.PixelFormat.TryGetColor(rawImageData, this.PixelFormat.BytesPerPixel * (x + r.Width * y), out Color color)) {
+                            else if (this.PixelFormat.TryGetColor(rawImageData, this.PixelFormat.BytesPerPixel * (x + r.Width * y), out RfbColor color)) {
                                 this.SetDesktopPixel(r.X + x, r.Y + y, color);
                             }
                             else
@@ -446,13 +459,15 @@ namespace PacketHandlerFramework.PacketHandlers {
                 }
             }
 
-            private void SetDesktopPixel(int x, int y, Color color) {
+            private void SetDesktopPixel(int x, int y, RfbColor color) {
 #if DEBUG
                 if (x < 0 || x > this.DesktopSize.Width || y < 0 || y > this.DesktopSize.Height)
                     Debugger.Break();
 #endif
+#if NETFRAMEWORK
                 if (this.TryGetDesktopBitmap(out Bitmap bitmap))
-                    bitmap.SetPixel(x, y, color);
+                    bitmap.SetPixel(x, y, color.ToDrawingColor());
+#endif
                 this.PixelsAddedTotal++;
             }
 
@@ -470,15 +485,17 @@ namespace PacketHandlerFramework.PacketHandlers {
                                 TightRectangleData.CompressionMethod cm = rData.CompressionMethodOrNull.Value;
 
                                 if (cm == TightRectangleData.CompressionMethod.Fill) {
-                                    if (this.PixelFormat.TryGetColor(rData.ImageBytes, 1, out Color color)) {
+                                    if (this.PixelFormat.TryGetColor(rData.ImageBytes, 1, out RfbColor color)) {
+#if NETFRAMEWORK
                                         for (int x = 0; x < r.Width; x++) {
                                             for (int y = 0; y < r.Height; y++) {
                                                 if (this.TryGetDesktopBitmap(out Bitmap bitmap)) {
-                                                    bitmap.SetPixel(r.X + x, r.Y + y, color);
+                                                    bitmap.SetPixel(r.X + x, r.Y + y, color.ToDrawingColor());
                                                     this.PixelsAddedTotal++;
                                                 }
                                             }
                                         }
+#endif
                                     }
                                 }
                                 else if (rData.Compression <= (byte)TightRectangleData.CompressionMethod.Basic_read_filter_s3) {

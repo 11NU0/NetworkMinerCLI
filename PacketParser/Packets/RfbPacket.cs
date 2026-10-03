@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static PacketParser.Packets.RfbPacket.VncCommandPacket;
 using static PacketParser.Packets.RfbPacket.VncResponsePacket;
-using System.Drawing;
+using PacketParser.Packets;
 using PacketParser.Utils;
 
 namespace PacketParser.Packets
@@ -918,22 +918,22 @@ namespace PacketParser.Packets
                 
             }
 
-            public bool TryGetColor(byte[] data, int offset, out Color color) {
+            public bool TryGetColor(byte[] data, int offset, out RfbColor color) {
                 uint colorValue = Utils.ByteConverter.ToUInt32(data, offset, this.BytesPerPixel, !this.BigEndian);
                 return this.TryGetColor(colorValue, out color);
             }
 
-            public bool TryGetColor(uint colorValue, out Color color) {
+            public bool TryGetColor(uint colorValue, out RfbColor color) {
                 if (this.TrueColour) {
                     byte red = GetColorIntensity(colorValue, this.RedShift, this.RedMax);
                     byte green = GetColorIntensity(colorValue, this.GreenShift, this.GreenMax);
                     byte blue = GetColorIntensity(colorValue, this.BlueShift, this.BlueMax);
-                    color = Color.FromArgb(red, green, blue);
+                    color = new RfbColor(red, green, blue);
                     
                     return true;
                 }
                 else {
-                    color = Color.FromArgb((int)colorValue);
+                    color = new RfbColor((int)colorValue);
                     return false;
                 }
             }
@@ -1037,7 +1037,7 @@ namespace PacketParser.Packets
                 //ServerInit
                 rfbPacket = new RfbPacket(parentFrame, packetStartIndex, packetEndIndex, clientToServer);
                 rfbPacket.PixelFormat = pf;
-                rfbPacket.ScreenSize = new System.Drawing.Size(width, height);
+                rfbPacket.ScreenSize = new RfbSize(width, height);
                 rfbPacket.VncDesktopName = desktopName;
             }
             return rfbPacket != null;
@@ -1219,7 +1219,7 @@ namespace PacketParser.Packets
         public string ProtocolVersionString = null;
         public SecurityType[] SecurityTypes = null;
         public VncPixelFormat? PixelFormat { get; set; } = null;
-        public System.Drawing.Size? ScreenSize { get; set; } = null;
+        public RfbSize? ScreenSize { get; set; } = null;
         public string VncDesktopName { get; set; } = null;
 
         public RfbPacket(VncCommandPacket commandPacket) : base(commandPacket.ParentFrame, commandPacket.PacketStartIndex, commandPacket.PacketEndIndex, "RFB")
@@ -2352,7 +2352,7 @@ namespace PacketParser.Packets
 
                 public CompressionMethod? CompressionMethodOrNull { get; }
 
-                public Color[] PaletteColors { get; } = null;
+                public RfbColor[] PaletteColors { get; } = null;
                 public byte[] ImageBytes { get; }
 
                 
@@ -2462,9 +2462,9 @@ namespace PacketParser.Packets
                                     if (pixelFormat.HasValue) {
                                         
                                         int colors = 1 + data[dataOffset + 2];
-                                        this.PaletteColors = new Color[colors];
+                                        this.PaletteColors = new RfbColor[colors];
                                         for(int i = 0; i < colors; i++) {
-                                            if(pixelFormat.Value.TryGetColor(data, dataOffset + 3 + i * pixelFormat.Value.BytesPerPixel, out Color color))
+                                            if(pixelFormat.Value.TryGetColor(data, dataOffset + 3 + i * pixelFormat.Value.BytesPerPixel, out RfbColor color))
                                                 this.PaletteColors[i] = color;
                                         }
                                     }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Web;
 
 
 namespace SharedUtils
@@ -19,9 +18,9 @@ namespace SharedUtils
         public static Version GetLatestVersion(string productCode, out string releasePost, out string downloadUrl) {
 #if DEBUG
             //string requestURL = "http://localhost:57978/updatecheck.ashx?l=" + System.Web.HttpUtility.UrlEncode(productCode);
-            string requestURL = "https://www.netresec.com/updatecheck.ashx?l=" + System.Web.HttpUtility.UrlEncode(productCode);
+            string requestURL = "https://www.netresec.com/updatecheck.ashx?l=" + UrlEncoder.UrlEncode(productCode);
 #else
-            string requestURL = "https://www.netresec.com/updatecheck.ashx?l=" + System.Web.HttpUtility.UrlEncode(productCode);
+            string requestURL = "https://www.netresec.com/updatecheck.ashx?l=" + UrlEncoder.UrlEncode(productCode);
 #endif
             if (SystemHelper.IsRunningOnMono()) {
                 //https://stackoverflow.com/questions/47559814/how-do-i-persuade-mono-to-use-tls-1-2-or-later

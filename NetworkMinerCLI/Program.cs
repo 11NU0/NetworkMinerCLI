@@ -69,6 +69,9 @@ namespace NetworkMinerCLI {
             var files = new ConcurrentQueue<ReconstructedFile>();
             var dnsRecords = new ConcurrentQueue<DnsRecordEventArgs>();
             var messages = new ConcurrentQueue<MessageEventArgs>();
+            var parameters = new ConcurrentQueue<ParametersEventArgs>();
+            var httpClients = new ConcurrentQueue<HttpClientEventArgs>();
+            var keywords = new ConcurrentQueue<KeywordEventArgs>();
 
             PacketHandler packetHandler;
             try {
@@ -94,6 +97,9 @@ namespace NetworkMinerCLI {
             packetHandler.FileReconstructed += (s, fe) => files.Enqueue(fe.File);
             packetHandler.DnsRecordDetected += (s, de) => dnsRecords.Enqueue(de);
             packetHandler.MessageDetected += (s, me) => messages.Enqueue(me);
+            packetHandler.ParametersDetected += (s, pe) => parameters.Enqueue(pe);
+            packetHandler.HttpTransactionDetected += (s, he) => httpClients.Enqueue(he);
+            packetHandler.KeywordDetected += (s, ke) => keywords.Enqueue(ke);
 
             packetHandler.StartBackgroundThreads();
 
@@ -154,9 +160,9 @@ namespace NetworkMinerCLI {
             }
 
             if (opts.Csv)
-                PrintCsv(hosts, sessions, credentials, files, dnsRecords, messages, opts);
+                PrintCsv(hosts, sessions, credentials, files, dnsRecords, messages, parameters, httpClients, keywords, opts);
             else
-                PrintTables(hosts, sessions, credentials, files, dnsRecords, messages, opts);
+                PrintTables(hosts, sessions, credentials, files, dnsRecords, messages, parameters, httpClients, keywords, opts);
 
             return 0;
         }
@@ -228,6 +234,9 @@ namespace NetworkMinerCLI {
             ConcurrentQueue<ReconstructedFile> files,
             ConcurrentQueue<DnsRecordEventArgs> dnsRecords,
             ConcurrentQueue<MessageEventArgs> messages,
+            ConcurrentQueue<ParametersEventArgs> parameters,
+            ConcurrentQueue<HttpClientEventArgs> httpClients,
+            ConcurrentQueue<KeywordEventArgs> keywords,
             Options opts) {
 
             PrintHosts(hosts);
@@ -237,6 +246,9 @@ namespace NetworkMinerCLI {
                 PrintFiles(files);
             PrintDns(dnsRecords);
             PrintMessages(messages);
+            PrintParameters(parameters);
+            PrintHttpClients(httpClients);
+            PrintKeywords(keywords);
         }
 
         private static void PrintHosts(ConcurrentQueue<NetworkHost> hosts) {
@@ -337,6 +349,9 @@ namespace NetworkMinerCLI {
             ConcurrentQueue<ReconstructedFile> files,
             ConcurrentQueue<DnsRecordEventArgs> dnsRecords,
             ConcurrentQueue<MessageEventArgs> messages,
+            ConcurrentQueue<ParametersEventArgs> parameters,
+            ConcurrentQueue<HttpClientEventArgs> httpClients,
+            ConcurrentQueue<KeywordEventArgs> keywords,
             Options opts) {
 
             Console.WriteLine("# Hosts");
@@ -412,6 +427,91 @@ namespace NetworkMinerCLI {
                     Csv(m.To),
                     Csv(m.Subject));
             }
+            Console.WriteLine();
+
+            Console.WriteLine("# Parameters");
+            Console.WriteLine("Frame,Source,Destination,Details,Key,Value");
+            foreach (var p in parameters) {
+                string src = p.SourceHost?.IPAddress?.ToString() ?? "?";
+                string dst = p.DestinationHost?.IPAddress?.ToString() ?? "?";
+                if (p.Parameters != null) {
+                    foreach (string key in p.Parameters.Keys) {
+                        Console.WriteLine("{0},{1},{2},{3},{4},{5}",
+                            p.FrameNumber, Csv(src), Csv(dst), Csv(p.Details), Csv(key), Csv(p.Parameters[key]));
+                    }
+                }
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("# HttpClients");
+            Console.WriteLine("Host,ClientId");
+            foreach (var h in httpClients) {
+                Console.WriteLine("{0},{1}",
+                    Csv(h.Host?.IPAddress?.ToString()),
+                    Csv(h.HttpClientId));
+            }
+            Console.WriteLine();
+
+            Console.WriteLine("# Keywords");
+            Console.WriteLine("Frame,Source,Destination,Keyword");
+            foreach (var k in keywords) {
+                string src = k.SourceHost?.IPAddress?.ToString() ?? "?";
+                string dst = k.DestinationHost?.IPAddress?.ToString() ?? "?";
+                string keyword = "";
+                if (k.Frame?.Data != null && k.KeywordIndex >= 0 && k.KeywordIndex + k.KeywordLength <= k.Frame.Data.Length)
+                    keyword = Encoding.ASCII.GetString(k.Frame.Data, k.KeywordIndex, k.KeywordLength);
+                Console.WriteLine("{0},{1},{2},{3}",
+                    k.Frame?.FrameNumber ?? 0, Csv(src), Csv(dst), Csv(keyword));
+            }
+        }
+
+        private static void PrintParameters(ConcurrentQueue<ParametersEventArgs> parameters) {
+            var list = parameters.ToList();
+            Console.WriteLine("=== Parameters ({0}) ===", list.Count);
+            if (list.Count == 0) { Console.WriteLine(); return; }
+            Console.WriteLine("{0,5}  {1,-16} {2,-16} {3,-24} {4}", "Frame", "Source", "Destination", "Details", "Parameters");
+            foreach (var p in list) {
+                string src = p.SourceHost?.IPAddress?.ToString() ?? "?";
+                string dst = p.DestinationHost?.IPAddress?.ToString() ?? "?";
+                string details = p.Details ?? "";
+                var parms = new List<string>();
+                if (p.Parameters != null) {
+                    foreach (string key in p.Parameters.Keys)
+                        parms.Add(key + "=" + p.Parameters[key]);
+                }
+                string paramStr = string.Join("; ", parms);
+                Console.WriteLine("{0,5}  {1,-16} {2,-16} {3,-24} {4}", p.FrameNumber, src, dst, Truncate(details, 24), Truncate(paramStr, 80));
+            }
+            Console.WriteLine();
+        }
+
+        private static void PrintHttpClients(ConcurrentQueue<HttpClientEventArgs> httpClients) {
+            var list = httpClients.ToList();
+            Console.WriteLine("=== HTTP Clients ({0}) ===", list.Count);
+            if (list.Count == 0) { Console.WriteLine(); return; }
+            Console.WriteLine("{0,-16} {1}", "Host", "Client ID");
+            foreach (var h in list) {
+                string host = h.Host?.IPAddress?.ToString() ?? "?";
+                string id = h.HttpClientId ?? "";
+                Console.WriteLine("{0,-16} {1}", host, id);
+            }
+            Console.WriteLine();
+        }
+
+        private static void PrintKeywords(ConcurrentQueue<KeywordEventArgs> keywords) {
+            var list = keywords.ToList();
+            Console.WriteLine("=== Keywords ({0}) ===", list.Count);
+            if (list.Count == 0) { Console.WriteLine(); return; }
+            Console.WriteLine("{0,5}  {1,-16} {2,-16} {3}", "Frame", "Source", "Destination", "Keyword");
+            foreach (var k in list) {
+                string src = k.SourceHost?.IPAddress?.ToString() ?? "?";
+                string dst = k.DestinationHost?.IPAddress?.ToString() ?? "?";
+                string keyword = "";
+                if (k.Frame?.Data != null && k.KeywordIndex >= 0 && k.KeywordIndex + k.KeywordLength <= k.Frame.Data.Length)
+                    keyword = Encoding.ASCII.GetString(k.Frame.Data, k.KeywordIndex, k.KeywordLength);
+                Console.WriteLine("{0,5}  {1,-16} {2,-16} {3}", k.Frame?.FrameNumber ?? 0, src, dst, keyword);
+            }
+            Console.WriteLine();
         }
 
         private static string FormatMac(PhysicalAddress mac) {

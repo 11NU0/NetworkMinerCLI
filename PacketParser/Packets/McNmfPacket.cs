@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Runtime.Remoting.Messaging;
-using System.Runtime.Remoting.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 using static PacketParser.Packets.McNmfPacket;
